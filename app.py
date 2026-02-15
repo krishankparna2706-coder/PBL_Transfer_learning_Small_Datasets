@@ -8,6 +8,7 @@ import os
 
 import torch
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image
 import io
@@ -23,6 +24,15 @@ app = FastAPI(
     title="Transfer Learning MVP - Inference API",
     description="Upload an image to get a classification prediction (e.g., ants vs bees).",
     version="1.0.0",
+)
+
+# Allow requests from GitHub Pages and same-origin (for live demo)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production you can restrict to your GitHub Pages URL
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
 )
 
 _model = None

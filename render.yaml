@@ -1,0 +1,12 @@
+# Render Blueprint: deploy the Transfer Learning inference API
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: pbl-transfer-learning-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.10.0"

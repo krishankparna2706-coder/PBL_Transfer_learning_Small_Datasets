@@ -46,4 +46,5 @@ NUM_WORKERS = 4  # DataLoader workers; use 0 on Windows if you see multiprocessi
 # API
 # -----------------------------------------------------------------------------
 API_HOST = "0.0.0.0"
-API_PORT = 5000
+# Use PORT from environment (e.g. Render, Heroku) or default 5000
+API_PORT = int(os.environ.get("PORT", 5000))

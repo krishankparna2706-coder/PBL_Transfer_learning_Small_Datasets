@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Demo | Transfer Learning - Ants vs Bees</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+        body { background-color: #020617; color: #f8fafc; font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gradient-text { background: linear-gradient(90deg, #60a5fa, #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .card-glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 40px; }
+        .upload-zone { border: 2px dashed rgba(96, 165, 250, 0.4); border-radius: 12px; padding: 40px; text-align: center; transition: all 0.2s; cursor: pointer; }
+        .upload-zone:hover, .upload-zone.dragover { border-color: #60a5fa; background: rgba(96, 165, 250, 0.05); }
+        .result-badge { font-size: 1.5rem; font-weight: 800; padding: 12px 24px; border-radius: 12px; display: inline-block; margin-top: 12px; }
+        .result-ants { background: rgba(34, 197, 94, 0.2); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.5); }
+        .result-bees { background: rgba(251, 191, 36, 0.2); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.5); }
+    </style>
+    <script src="api-config.js"></script>
+</head>
+<body>
+    <nav class="fixed top-0 left-0 right-0 z-50 glass">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="index.html" class="flex items-center space-x-3 text-gray-300 hover:text-white transition">
+                <img src="mujlogo.jpg" alt="MUJ" class="h-10 w-auto object-contain">
+                <span class="font-bold">Transfer Learning Demo</span>
+            </a>
+            <a href="index.html" class="text-gray-400 hover:text-blue-400 text-sm font-semibold"><i class="fas fa-arrow-left mr-1"></i> Back to presentation</a>
+        </div>
+    </nav>
+
+    <main class="pt-28 pb-16 px-6 max-w-3xl mx-auto">
+        <h1 class="text-4xl font-bold mb-2 gradient-text">Live Demo</h1>
+        <p class="text-gray-400 mb-8">Upload an image of an ant or a bee. The model will classify it using transfer learning (ResNet18).</p>
+
+        <!-- API URL config (optional - for when API is deployed elsewhere) -->
+        <div class="card-glass mb-8">
+            <label class="block text-sm font-semibold text-gray-400 mb-2">Demo API URL (optional)</label>
+            <p class="text-gray-500 text-xs mb-2">If the demo runs on a deployed API, paste its URL below (e.g. https://your-app.onrender.com). Leave blank to try localhost when testing locally.</p>
+            <div class="flex gap-2">
+                <input type="text" id="apiUrl" placeholder="https://your-api.onrender.com" 
+                    class="flex-1 bg-slate-800/50 border border-slate-600 rounded-lg px-4 py-2 text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                <button type="button" id="saveApiUrl" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg font-semibold text-white transition">Save</button>
+            </div>
+            <p id="apiUrlStatus" class="text-xs mt-2 text-gray-500"></p>
+        </div>
+
+        <div class="card-glass">
+            <div class="upload-zone" id="uploadZone">
+                <input type="file" id="fileInput" accept="image/*" class="hidden">
+                <i class="fas fa-cloud-upload-alt text-4xl text-blue-400 mb-4"></i>
+                <p class="text-gray-300 font-semibold">Click or drag an image here</p>
+                <p class="text-gray-500 text-sm mt-1">JPEG, PNG supported</p>
+            </div>
+
+            <div id="previewArea" class="mt-6 hidden">
+                <img id="previewImg" src="" alt="Preview" class="max-h-64 rounded-lg mx-auto border border-slate-600">
+                <p class="text-gray-400 text-sm mt-2 text-center" id="previewName"></p>
+                <button type="button" id="classifyBtn" class="mt-4 w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 rounded-lg font-bold text-white transition flex items-center justify-center gap-2">
+                    <i class="fas fa-brain"></i> Classify image
+                </button>
+            </div>
+
+            <div id="resultArea" class="mt-6 hidden">
+                <p class="text-gray-400 font-semibold">Prediction</p>
+                <p id="resultClass" class="result-badge"></p>
+                <p id="resultConfidence" class="text-gray-400 mt-2"></p>
+                <p id="resultProbs" class="text-gray-500 text-sm mt-2"></p>
+                <button type="button" id="resetBtn" class="mt-4 text-blue-400 hover:text-blue-300 text-sm font-semibold"><i class="fas fa-redo mr-1"></i> Try another image</button>
+            </div>
+
+            <div id="errorArea" class="mt-6 hidden p-4 bg-red-900/20 border border-red-500/50 rounded-lg">
+                <p id="errorText" class="text-red-400 text-sm"></p>
+                <p class="text-gray-500 text-xs mt-2">Make sure you have trained the model (<code>python main.py</code>) and started the API (<code>python app.py</code>), or deployed the API and set its URL above.</p>
+            </div>
+
+            <div id="loadingArea" class="mt-6 hidden text-center">
+                <i class="fas fa-spinner fa-spin text-3xl text-blue-400"></i>
+                <p class="text-gray-400 mt-2">Classifying...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const STORAGE_KEY = 'transfer_learning_demo_api_url';
+        const apiUrlInput = document.getElementById('apiUrl');
+        const saveApiUrlBtn = document.getElementById('saveApiUrl');
+        const apiUrlStatus = document.getElementById('apiUrlStatus');
+        const uploadZone = document.getElementById('uploadZone');
+        const fileInput = document.getElementById('fileInput');
+        const previewArea = document.getElementById('previewArea');
+        const previewImg = document.getElementById('previewImg');
+        const previewName = document.getElementById('previewName');
+        const classifyBtn = document.getElementById('classifyBtn');
+        const resultArea = document.getElementById('resultArea');
+        const resultClass = document.getElementById('resultClass');
+        const resultConfidence = document.getElementById('resultConfidence');
+        const resultProbs = document.getElementById('resultProbs');
+        const resetBtn = document.getElementById('resetBtn');
+        const errorArea = document.getElementById('errorArea');
+        const errorText = document.getElementById('errorText');
+        const loadingArea = document.getElementById('loadingArea');
+
+        function getApiBase() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved && saved.trim()) return saved.trim().replace(/\/$/, '');
+            if (typeof window.DEMO_API_BASE !== 'undefined' && window.DEMO_API_BASE) return String(window.DEMO_API_BASE).trim().replace(/\/$/, '');
+            return '';
+        }
+
+        function showStatus(msg, isOk) {
+            apiUrlStatus.textContent = msg;
+            apiUrlStatus.className = 'text-xs mt-2 ' + (isOk ? 'text-green-400' : 'text-amber-400');
+        }
+
+        apiUrlInput.value = getApiBase();
+        saveApiUrlBtn.addEventListener('click', () => {
+            const url = apiUrlInput.value.trim().replace(/\/$/, '');
+            if (url) {
+                localStorage.setItem(STORAGE_KEY, url);
+                showStatus('Saved. You can upload an image and click Classify.', true);
+            } else {
+                localStorage.removeItem(STORAGE_KEY);
+                showStatus('Cleared. Demo will use same origin (current site) or you can run API locally.', false);
+            }
+        });
+
+        uploadZone.addEventListener('click', () => fileInput.click());
+        uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('dragover'); });
+        uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
+        uploadZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) setFile(file);
+        });
+        fileInput.addEventListener('change', (e) => { const f = e.target.files[0]; if (f) setFile(f); });
+
+        let selectedFile = null;
+        function setFile(file) {
+            selectedFile = file;
+            previewImg.src = URL.createObjectURL(file);
+            previewName.textContent = file.name;
+            previewArea.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+            errorArea.classList.add('hidden');
+        }
+
+        function showLoading(show) {
+            loadingArea.classList.toggle('hidden', !show);
+            if (show) { resultArea.classList.add('hidden'); errorArea.classList.add('hidden'); }
+        }
+
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorArea.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+            loadingArea.classList.add('hidden');
+        }
+
+        classifyBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+            const base = getApiBase();
+            const isLikelyStaticHost = window.location.hostname.includes('github.io') || window.location.hostname.includes('github.com');
+            if (!base && isLikelyStaticHost) {
+                showError('To use the demo on this site, the API must be deployed. Paste your deployed API URL above (e.g. from Render or Railway), click Save, then try again. See README for deployment steps.');
+                return;
+            }
+            showLoading(true);
+            const url = base ? (base + '/predict') : (window.location.origin + '/predict');
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            try {
+                const res = await fetch(url, { method: 'POST', body: formData });
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) {
+                    showError(data.detail || data.message || `Error ${res.status}: ${res.statusText}`);
+                    return;
+                }
+                loadingArea.classList.add('hidden');
+                resultArea.classList.remove('hidden');
+                const pred = (data.prediction || '').toLowerCase();
+                resultClass.textContent = data.prediction || 'Unknown';
+                resultClass.className = 'result-badge ' + (pred.includes('ant') ? 'result-ants' : 'result-bees');
+                resultConfidence.textContent = 'Confidence: ' + ((data.confidence || 0) * 100).toFixed(1) + '%';
+                resultProbs.textContent = data.probabilities ? Object.entries(data.probabilities).map(([k, v]) => `${k}: ${(v * 100).toFixed(1)}%`).join('  ·  ') : '';
+            } catch (err) {
+                if (base) showError('Could not reach the API at ' + base + '. Check the URL and CORS.');
+                else showError('Could not reach the API. Deploy it (e.g. Render) and set the API URL above, or run "python app.py" locally and open this page from the same host.');
+            }
+        });
+
+        resetBtn.addEventListener('click', () => {
+            selectedFile = null;
+            fileInput.value = '';
+            previewImg.src = '';
+            previewArea.classList.add('hidden');
+            resultArea.classList.add('hidden');
+            errorArea.classList.add('hidden');
+        });
+    </script>
+</body>
+</html>

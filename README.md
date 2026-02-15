@@ -135,6 +135,18 @@ Example response:
 
 If the model is not trained yet, the server can start but `/predict` will return 503 until you run `main.py`.
 
+## Live demo (website)
+
+The repo includes a **demo page** (`demo.html`) so visitors can upload an image and see a prediction. The "Launch Demo" button on the presentation links to it.
+
+For the demo to work when the site is hosted on **GitHub Pages** (or any static host), the **inference API must be running somewhere** the browser can reach:
+
+1. **Deploy the API** to a free tier host that runs Python (e.g. [Render](https://render.com), [Railway](https://railway.app), or [Hugging Face Spaces](https://huggingface.co/spaces)). Upload this project, set the start command to `python app.py` or `uvicorn app:app --host 0.0.0.0 --port $PORT`, and include the trained `best_model.pth` and `class_names.json` (e.g. by training in the cloud or uploading artifacts).
+2. **On the demo page**, paste the deployed API URL (e.g. `https://your-app.onrender.com`) in the "Demo API URL" field and click **Save**.
+3. Upload an image and click **Classify**. The page will send the image to your API and show the prediction.
+
+**Testing locally:** Run `python app.py` on your machine, then open `demo.html` in the browser. If the demo is served from the same origin as the API (e.g. you open the file from the same machine where the API runs), you can leave the API URL blank or use `http://localhost:5000`.
+
 ## Docker (optional)
 
 Build and run the API in a container:
